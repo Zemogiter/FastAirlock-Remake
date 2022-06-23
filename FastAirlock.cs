@@ -1,4 +1,4 @@
-﻿using Planetbase;
+using Planetbase;
 using System;
 using UnityEngine;
 using static UnityModManagerNet.UnityModManager;
@@ -11,7 +11,7 @@ namespace FastAirlock
 {
     public class FastAirlock : ModBase
     {
-        
+
         public static float speedmult;
         public static string pathy;
         public static new void Init(ModEntry modEntry) => InitializeMod(new FastAirlock(), modEntry, "FastAirlock");
@@ -24,13 +24,14 @@ namespace FastAirlock
             line = file.ReadLine();
             line = line.Substring(13);
             speedmult = float.Parse(line);
+            Console.WriteLine("The value of speedmult is " + speedmult);
+            var newUpdate = new CustomAirlock();
+            newUpdate.update(speedmult);
         }
 
         public override void OnUpdate(ModEntry modEntry, float timeStep)
         {
-			var newUpdate = new CustomAirlock();
-            newUpdate.update(timeStep);
-            //CustomAirlock.update(timeStep);
+            
         }
 
     }
@@ -39,22 +40,24 @@ namespace FastAirlock
     {
         public override bool update(float timeStep2)
         {
-			
             try
 			{
                 float timeStep = timeStep2 * FastAirlock.speedmult;
+                this.mSelectable = getSelectable();
                 if (this.mSelectable is Construction construction && !construction.isPowered() && this.mStage == InteractionAirlock.Stage.Wait)
                 {
                     return true;
                 }
+                Console.WriteLine("this.mSelectable is= " + this.mSelectable);
 
-                if (this.mSelectable is Construction && this.mSelectable.getFirstInteraction() == this)
+                if (this.mTarget != null && this.mSelectable is Construction && this.mSelectable.getFirstInteraction() == this)
                 {
                     this.mStageProgress += timeStep;
                     if (this.mStageProgress > 1f || this.mStage == InteractionAirlock.Stage.Wait)
                     {
                         bool flag = this.mStage == InteractionAirlock.Stage.Exit;
-                        this.onStageDone();
+                        Console.WriteLine("flag is= " + flag);
+                        onStageDone();
                         this.mStageProgress = 0f;
                         if (flag)
                         {
@@ -68,12 +71,15 @@ namespace FastAirlock
                     this.mTarget = this.getQueuePosition(this.mSelectable.getInteractionIndex(this));
                 }
                 Vector3 direction = this.mTarget - this.mCharacter.getPosition();
+                Console.WriteLine("direction is= " + direction);
                 float magnitude = direction.magnitude;
+                Console.WriteLine("magnitude is= " + magnitude);
                 float d = Mathf.Min(4f * timeStep, magnitude);
-                if (magnitude > 0.25f)
+                Console.WriteLine("d is= " + d);
+                if (magnitude > 0.25f && direction != null)
                 {
                     Vector3 target;
-                    if (this.mStage == InteractionAirlock.Stage.Wait && magnitude < 1f && this.mSelectable is Construction)
+                    if (this.mStage == InteractionAirlock.Stage.Wait && magnitude < 1f && this.mSelectable is Construction && direction != null)
                     {
                         target = (this.mSelectable.getPosition() - this.mCharacter.getPosition()).flatDirection();
                     }
@@ -82,6 +88,7 @@ namespace FastAirlock
                         target = direction.flatDirection();
                     }
                     Vector3 direction2 = this.mCharacter.getDirection();
+                    Console.WriteLine("direction2 is= " + direction2);
                     this.mCharacter.setPosition(this.mCharacter.getPosition() + direction.normalized * d);
                     this.mCharacter.setDirection(Vector3.RotateTowards(direction2, target, 6.28318548f * timeStep, 0.1f));
                     if (this.mAnimationType != CharacterAnimationType.Walk)
@@ -108,18 +115,17 @@ namespace FastAirlock
 			{
                 Logger.LogException(exception);
             }
-            return true;
+            return false;
         }
 
-		protected override Vector3 getQueuePosition(int i)
-		{
-			throw new NotImplementedException();
-		}
-
-		protected override void onStageDone()
-		{
-			throw new NotImplementedException();
-		}
-	}
-    public class ExtensionAttribute : Attribute { }
+        protected override Vector3 getQueuePosition(int i)
+        {
+            throw new NotImplementedException();
+        }
+        
+        protected override void onStageDone()
+        {
+            
+        }
+    }
 }
